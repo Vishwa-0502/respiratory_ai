@@ -101,7 +101,8 @@ This is a Flask-based web application that uses deep learning to analyze chest X
 - **Security**: ProxyFix middleware for proper header handling
 
 ## Changelog
-- June 19, 2025. Initial setup
+- June 19, 2025: Enhanced AI model with feature-based analysis for more realistic disease identification
+- June 19, 2025: Initial setup
 
 ## User Preferences
 
