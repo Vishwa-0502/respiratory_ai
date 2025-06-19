@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - AI Diagnostic Tool{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Results Header -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        X-ray Analysis Results
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Analysis Date</h6>
+                            <p class="mb-3">{{ prediction.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                            
+                            <h6 class="text-muted mb-2">Image File</h6>
+                            <p class="mb-0">{{ prediction.original_filename }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            {% if prediction.image_width and prediction.image_height %}
+                            <h6 class="text-muted mb-2">Image Dimensions</h6>
+                            <p class="mb-3">{{ prediction.image_width }} × {{ prediction.image_height }} pixels</p>
+                            {% endif %}
+                            
+                            {% if prediction.file_size %}
+                            <h6 class="text-muted mb-2">File Size</h6>
+                            <p class="mb-0">{{ "%.2f"|format(prediction.file_size / (1024*1024)) }} MB</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Image Display -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-image me-2"></i>
+                                X-ray Image
+                            </h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <img src="{{ url_for('uploaded_file', filename=prediction.filename) }}" 
+                                 class="img-fluid rounded border" 
+                                 alt="X-ray image"
+                                 style="max-height: 400px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Diagnosis Results -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-stethoscope me-2"></i>
+                                Diagnosis Results
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Disease Classification -->
+                            <div class="mb-4">
+                                <h6 class="text-muted mb-2">Predicted Condition</h6>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-{{ prediction.risk_color }} me-2 p-2">
+                                        {% if prediction.predicted_disease == 0 %}
+                                            <i class="fas fa-check-circle me-1"></i>
+                                        {% elif prediction.predicted_disease == 1 %}
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                        {% else %}
+                                            <i class="fas fa-virus me-1"></i>
+                                        {% endif %}
+                                        {{ prediction.disease_name }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Confidence Score -->
+                            <div class="mb-4">
+                                <h6 class="text-muted mb-2">Confidence Level</h6>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar 
+                                        {% if prediction.confidence_percentage >= 80 %}bg-success
+                                        {% elif prediction.confidence_percentage >= 60 %}bg-warning
+                                        {% else %}bg-danger{% endif %}" 
+                                         style="width: {{ prediction.confidence_percentage }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ prediction.confidence_percentage }}% confidence</small>
+                            </div>
+
+                            <!-- Severity Score -->
+                            <div class="mb-4">
+                                <h6 class="text-muted mb-2">Severity Assessment</h6>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar 
+                                        {% if prediction.severity_percentage < 30 %}bg-success
+                                        {% elif prediction.severity_percentage < 70 %}bg-warning
+                                        {% else %}bg-danger{% endif %}" 
+                                         style="width: {{ prediction.severity_percentage }}%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">{{ prediction.severity_percentage }}% severity</small>
+                                    <small class="text-muted">{{ prediction.severity_level }}</small>
+                                </div>
+                            </div>
+
+                            <!-- Risk Assessment -->
+                            <div class="alert 
+                                {% if prediction.predicted_disease == 0 %}alert-success
+                                {% elif prediction.severity_percentage < 50 %}alert-warning
+                                {% else %}alert-danger{% endif %}" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Assessment:</strong>
+                                {% if prediction.predicted_disease == 0 %}
+                                    The X-ray appears normal with no obvious signs of pneumonia or COVID-19.
+                                {% elif prediction.predicted_disease == 1 %}
+                                    Signs consistent with pneumonia detected. Severity level: {{ prediction.severity_level }}.
+                                {% else %}
+                                    Findings suggestive of COVID-19 pneumonia. Severity level: {{ prediction.severity_level }}.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analysis -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-analytics me-2"></i>
+                        Detailed Analysis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="metric-card p-3 border rounded">
+                                <i class="fas fa-heartbeat text-success mb-2"></i>
+                                <h6>Normal</h6>
+                                <div class="progress mb-2" style="height: 6px;">
+                                    <div class="progress-bar bg-success" style="width: {{ (prediction.probabilities[0] * 100)|round(1) if prediction.probabilities else 0 }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ (prediction.probabilities[0] * 100)|round(1) if prediction.probabilities else 'N/A' }}%</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="metric-card p-3 border rounded">
+                                <i class="fas fa-lungs text-warning mb-2"></i>
+                                <h6>Pneumonia</h6>
+                                <div class="progress mb-2" style="height: 6px;">
+                                    <div class="progress-bar bg-warning" style="width: {{ (prediction.probabilities[1] * 100)|round(1) if prediction.probabilities else 0 }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ (prediction.probabilities[1] * 100)|round(1) if prediction.probabilities else 'N/A' }}%</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="metric-card p-3 border rounded">
+                                <i class="fas fa-virus text-danger mb-2"></i>
+                                <h6>COVID-19</h6>
+                                <div class="progress mb-2" style="height: 6px;">
+                                    <div class="progress-bar bg-danger" style="width: {{ (prediction.probabilities[2] * 100)|round(1) if prediction.probabilities else 0 }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ (prediction.probabilities[2] * 100)|round(1) if prediction.probabilities else 'N/A' }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medical Disclaimer -->
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Important Medical Disclaimer:</strong>
+                This AI analysis is for educational and research purposes only. It should not replace professional medical diagnosis or treatment. Always consult with qualified healthcare professionals for medical decisions. The AI model may not detect all conditions and can produce false positives or negatives.
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                <a href="{{ url_for('upload_page') }}" class="btn btn-primary me-md-2">
+                    <i class="fas fa-upload me-2"></i>
+                    Analyze Another X-ray
+                </a>
+                <a href="{{ url_for('history') }}" class="btn btn-outline-secondary me-md-2">
+                    <i class="fas fa-history me-2"></i>
+                    View History
+                </a>
+                <button class="btn btn-outline-info" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>
+                    Print Results
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Add any specific scripts for results page
+document.addEventListener('DOMContentLoaded', function() {
+    // Smooth animations for progress bars
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach(bar => {
+        const width = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.transition = 'width 1s ease-in-out';
+            bar.style.width = width;
+        }, 100);
+    });
+});
+</script>
+{% endblock %}

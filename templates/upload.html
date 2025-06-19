@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Upload X-ray - AI Diagnostic Tool{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-upload me-2"></i>
+                        Upload Chest X-ray Image
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form id="uploadForm" method="POST" enctype="multipart/form-data" action="{{ url_for('upload_file') }}">
+                        <div class="mb-4">
+                            <label for="xray_image" class="form-label">
+                                <i class="fas fa-image me-2"></i>
+                                Select X-ray Image
+                            </label>
+                            <input type="file" 
+                                   class="form-control" 
+                                   id="xray_image" 
+                                   name="xray_image" 
+                                   accept="image/*" 
+                                   required>
+                            <div class="form-text">
+                                Supported formats: PNG, JPG, JPEG, TIFF, BMP. Maximum file size: 16MB.
+                            </div>
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div id="imagePreview" class="mb-4" style="display: none;">
+                            <label class="form-label">Image Preview:</label>
+                            <div class="border rounded p-3 text-center">
+                                <img id="previewImage" class="img-fluid" style="max-height: 300px;" alt="X-ray preview">
+                                <div id="imageInfo" class="mt-2 small text-muted"></div>
+                            </div>
+                        </div>
+
+                        <!-- Upload Progress -->
+                        <div id="uploadProgress" class="mb-4" style="display: none;">
+                            <label class="form-label">Upload Progress:</label>
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">Processing your X-ray image...</small>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                <i class="fas fa-brain me-2"></i>
+                                Analyze X-ray
+                            </button>
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Back to Home
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Guidelines Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Upload Guidelines
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Recommended
+                            </h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i>Chest X-ray images</li>
+                                <li><i class="fas fa-check text-success me-2"></i>High resolution (min 100x100px)</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Clear, unobstructed view</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Frontal view preferred</li>
+                                <li><i class="fas fa-check text-success me-2"></i>DICOM, PNG, or JPEG format</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-danger">
+                                <i class="fas fa-times-circle me-2"></i>
+                                Avoid
+                            </h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-times text-danger me-2"></i>Blurry or low-quality images</li>
+                                <li><i class="fas fa-times text-danger me-2"></i>Images with artifacts</li>
+                                <li><i class="fas fa-times text-danger me-2"></i>Non-chest X-ray images</li>
+                                <li><i class="fas fa-times text-danger me-2"></i>Images larger than 16MB</li>
+                                <li><i class="fas fa-times text-danger me-2"></i>Rotated or tilted images</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Privacy Notice -->
+            <div class="alert alert-info mt-4">
+                <i class="fas fa-shield-alt me-2"></i>
+                <strong>Privacy Notice:</strong> 
+                Uploaded images are processed locally and stored temporarily for analysis. 
+                No personal medical information is required or stored.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('xray_image');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const imageInfo = document.getElementById('imageInfo');
+    const uploadForm = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadProgress = document.getElementById('uploadProgress');
+
+    // File selection handler
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file size
+            if (file.size > 16 * 1024 * 1024) {
+                alert('File size too large. Please select a file smaller than 16MB.');
+                fileInput.value = '';
+                imagePreview.style.display = 'none';
+                return;
+            }
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                imagePreview.style.display = 'block';
+                
+                // Show file info
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                imageInfo.textContent = `File: ${file.name} | Size: ${sizeInMB} MB | Type: ${file.type}`;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imagePreview.style.display = 'none';
+        }
+    });
+
+    // Form submission handler
+    uploadForm.addEventListener('submit', function(e) {
+        if (!fileInput.files[0]) {
+            e.preventDefault();
+            alert('Please select an X-ray image to upload.');
+            return;
+        }
+
+        // Show progress
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+        uploadProgress.style.display = 'block';
+        
+        // Simulate progress (since we can't track actual upload progress easily)
+        let progress = 0;
+        const progressBar = uploadProgress.querySelector('.progress-bar');
+        const interval = setInterval(function() {
+            progress += Math.random() * 30;
+            if (progress > 90) progress = 90;
+            progressBar.style.width = progress + '%';
+        }, 500);
+
+        // Clean up if form actually submits
+        setTimeout(function() {
+            clearInterval(interval);
+            progressBar.style.width = '100%';
+        }, 3000);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction History - AI Diagnostic Tool{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Prediction History
+                    </h3>
+                    <span class="badge bg-secondary">
+                        {{ predictions.total }} total predictions
+                    </span>
+                </div>
+                <div class="card-body">
+                    {% if predictions.items %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Image</th>
+                                        <th>Diagnosis</th>
+                                        <th>Severity</th>
+                                        <th>Confidence</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for prediction in predictions.items %}
+                                    <tr>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ prediction.created_at.strftime('%m/%d/%Y') }}<br>
+                                                {{ prediction.created_at.strftime('%I:%M %p') }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ url_for('uploaded_file', filename=prediction.filename) }}" 
+                                                     class="rounded border me-2" 
+                                                     style="width: 40px; height: 40px; object-fit: cover;"
+                                                     alt="X-ray thumbnail">
+                                                <div>
+                                                    <small class="text-truncate d-block" style="max-width: 120px;">
+                                                        {{ prediction.original_filename }}
+                                                    </small>
+                                                    {% if prediction.file_size %}
+                                                    <small class="text-muted">
+                                                        {{ "%.1f"|format(prediction.file_size / (1024*1024)) }} MB
+                                                    </small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ prediction.risk_color }}">
+                                                {% if prediction.predicted_disease == 0 %}
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                {% elif prediction.predicted_disease == 1 %}
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                {% else %}
+                                                    <i class="fas fa-virus me-1"></i>
+                                                {% endif %}
+                                                {{ prediction.disease_name }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress me-2" style="width: 60px; height: 6px;">
+                                                    <div class="progress-bar 
+                                                        {% if prediction.severity_percentage < 30 %}bg-success
+                                                        {% elif prediction.severity_percentage < 70 %}bg-warning
+                                                        {% else %}bg-danger{% endif %}" 
+                                                         style="width: {{ prediction.severity_percentage }}%"></div>
+                                                </div>
+                                                <small class="text-muted">{{ prediction.severity_percentage }}%</small>
+                                            </div>
+                                            <small class="text-muted">{{ prediction.severity_level }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress me-2" style="width: 60px; height: 6px;">
+                                                    <div class="progress-bar 
+                                                        {% if prediction.confidence_percentage >= 80 %}bg-success
+                                                        {% elif prediction.confidence_percentage >= 60 %}bg-warning
+                                                        {% else %}bg-danger{% endif %}" 
+                                                         style="width: {{ prediction.confidence_percentage }}%"></div>
+                                                </div>
+                                                <small class="text-muted">{{ prediction.confidence_percentage }}%</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('results', prediction_id=prediction.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i>
+                                                View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if predictions.pages > 1 %}
+                        <nav aria-label="Prediction history pagination">
+                            <ul class="pagination justify-content-center">
+                                {% if predictions.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('history', page=predictions.prev_num) }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for page_num in predictions.iter_pages() %}
+                                    {% if page_num %}
+                                        {% if page_num != predictions.page %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('history', page=page_num) }}">
+                                                    {{ page_num }}
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ page_num }}</span>
+                                            </li>
+                                        {% endif %}
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if predictions.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('history', page=predictions.next_num) }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+
+                    {% else %}
+                        <!-- Empty State -->
+                        <div class="text-center py-5">
+                            <i class="fas fa-history display-4 text-muted mb-3"></i>
+                            <h5 class="text-muted">No Predictions Yet</h5>
+                            <p class="text-muted mb-4">
+                                You haven't uploaded any X-ray images for analysis yet.
+                            </p>
+                            <a href="{{ url_for('upload_page') }}" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>
+                                Upload Your First X-ray
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Statistics Card -->
+            {% if predictions.items %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Quick Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="stat-card p-3">
+                                <i class="fas fa-check-circle text-success mb-2"></i>
+                                <h6>Normal Cases</h6>
+                                <strong>{{ predictions.items | selectattr('predicted_disease', 'equalto', 0) | list | length }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card p-3">
+                                <i class="fas fa-lungs text-warning mb-2"></i>
+                                <h6>Pneumonia Cases</h6>
+                                <strong>{{ predictions.items | selectattr('predicted_disease', 'equalto', 1) | list | length }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card p-3">
+                                <i class="fas fa-virus text-danger mb-2"></i>
+                                <h6>COVID-19 Cases</h6>
+                                <strong>{{ predictions.items | selectattr('predicted_disease', 'equalto', 2) | list | length }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card p-3">
+                                <i class="fas fa-calendar text-info mb-2"></i>
+                                <h6>This Page</h6>
+                                <strong>{{ predictions.items | length }} / {{ predictions.per_page }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth animations to progress bars
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach(bar => {
+        const width = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.transition = 'width 0.8s ease-in-out';
+            bar.style.width = width;
+        }, Math.random() * 200);
+    });
+
+    // Add tooltips to truncated filenames
+    const truncatedElements = document.querySelectorAll('.text-truncate');
+    truncatedElements.forEach(element => {
+        element.setAttribute('title', element.textContent);
+    });
+});
+</script>
+{% endblock %}
